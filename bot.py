@@ -21,15 +21,27 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     prompt = update.message.text
-    
+
     try:
-        resp = requests.post(f"{BASE_URL}/query", json={"user_id": user_id, "prompt": prompt})
+        resp = requests.post(
+            f"{BASE_URL}/query",
+            json={"user_id": user_id, "prompt": prompt},
+            timeout=120
+        )
+
         if resp.status_code == 402:
             await update.message.reply_text("Pay kar pehle → /buy")
             return
-        await update.message.reply_text(resp.json().get("reply", "Retry kar"))
-    except:
-        await update.message.reply_text("Busy hai, 10 sec baad try")
+
+        if resp.status_code != 200:
+            await update.message.reply_text(f"Error {resp.status_code}: {resp.text}")
+            return
+
+        await update.message.reply_text(resp.json()["reply"])
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
 
 application = Application.builder().token(os.getenv("TG_TOKEN")).build()
 application.add_handler(CommandHandler("start", start))
