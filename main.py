@@ -21,16 +21,25 @@ async def call_groq(prompt: str):
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
             json={
-                "model": "llama3-70b-8192",
+                "model": "llama3-8b-8192",
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 4000
+                "max_tokens": 1024
             },
             timeout=60
         )
+
+        # 🔥 helpful debug
+        if resp.status_code != 200:
+            print(resp.text)
+
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
+
 
 @app.post("/query")
 async def handle_query(q: Query):
