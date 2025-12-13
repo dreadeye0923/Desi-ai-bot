@@ -42,15 +42,30 @@ async def call_groq(prompt: str):
 
 
 @app.post("/query")
-async def handle_query(q: Query):
-    if not r:
-        raise HTTPException(status_code=500, detail="Redis not configured")
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.effective_user.id)
+    prompt = update.message.text
 
-    if not r.get(f"paid:{q.user_id}"):
-        raise HTTPException(status_code=402, detail="Payment required")
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/query",
+            json={"user_id": user_id, "prompt": prompt},
+            timeout=120
+        )
 
-    reply = await call_groq(q.prompt)
-    return {"reply": reply}
+        if resp.status_code == 402:
+            await update.message.reply_text("Pay kar pehle → /buy")
+            return
+
+        if resp.status_code != 200:
+            await update.message.reply_text(f"Error {resp.status_code}: {resp.text}")
+            return
+
+        await update.message.reply_text(resp.json()["reply"])
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
 
 @app.get("/health")
 async def health():
