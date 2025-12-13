@@ -6,19 +6,28 @@ import redis
 
 app = FastAPI()
 
+# ---------- Redis setup (SAFE) ----------
 REDIS_URL = os.getenv("REDIS_URL")
-r = redis.from_url(REDIS_URL) if REDIS_URL else None
+try:
+    r = redis.from_url(REDIS_URL) if REDIS_URL else None
+except Exception as e:
+    print("Redis connection error:", e)
+    r = None
 
+
+# ---------- Request model ----------
 class Query(BaseModel):
     user_id: str
     prompt: str
 
+
+# ---------- Groq call ----------
 async def call_groq(prompt: str):
     api_key = os.getenv("GROQ_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_KEY not set")
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=120) as client:
         resp = await client.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -28,45 +37,37 @@ async def call_groq(prompt: str):
             json={
                 "model": "llama3-8b-8192",
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 1024
-            },
-            timeout=60
+                "max_tokens": 512
+            }
         )
 
-        # 🔥 helpful debug
         if resp.status_code != 200:
-            print(resp.text)
+            print("Groq error:", resp.text)
 
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
 
 
+# ---------- API endpoint ----------
 @app.post("/query")
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    prompt = update.message.text
+async def handle_query(q: Query):
+    # Redis must be available
+    if not r:
+        raise HTTPException(status_code=503, detail="Service unavailable")
+
+    # Check payment
+    paid = r.get(f"paid:{q.user_id}")
+    if not paid:
+        raise HTTPException(status_code=402, detail="Payment required")
 
     try:
-        resp = requests.post(
-            f"{BASE_URL}/query",
-            json={"user_id": user_id, "prompt": prompt},
-            timeout=120
-        )
-
-        if resp.status_code == 402:
-            await update.message.reply_text("Pay kar pehle → /buy")
-            return
-
-        if resp.status_code != 200:
-            await update.message.reply_text(f"Error {resp.status_code}: {resp.text}")
-            return
-
-        await update.message.reply_text(resp.json()["reply"])
-
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error: {str(e)}")
+        reply = await call_groq(q.prompt)
+        return {"reply": reply}
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="AI service error")
 
 
+# ---------- Health check ----------
 @app.get("/health")
 async def health():
     return {"status": "alive"}
