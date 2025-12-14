@@ -15,7 +15,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    pay_link = f"https://rzp.io/rzp/eIDg0e1?notes[user_id]={user_id}" # Yeh baad mein update kar
+    pay_link = f"https://rzp.io/rzp/eY8nbPV?notes[user_id]={user_id}" # Yeh baad mein update kar
     await update.message.reply_text(f"₹499 ek baar → forever access\n{pay_link}")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
