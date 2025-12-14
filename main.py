@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 import httpx
 import os
@@ -6,66 +6,52 @@ import redis
 
 app = FastAPI()
 
-# ---------- Redis setup (SAFE) ----------
+# ------------------ Redis ------------------
 REDIS_URL = os.getenv("REDIS_URL")
-try:
-    r = redis.from_url(REDIS_URL) if REDIS_URL else None
-except Exception as e:
-    print("Redis connection error:", e)
-    r = None
+if not REDIS_URL:
+    raise RuntimeError("REDIS_URL not set")
 
+r = redis.from_url(REDIS_URL, decode_responses=True)
 
-# ---------- Request model ----------
+# ------------------ Models ------------------
 class Query(BaseModel):
     user_id: str
     prompt: str
 
-
-# ---------- Groq call ----------
+# ------------------ Groq Call ------------------
 async def call_groq(prompt: str):
     api_key = os.getenv("GROQ_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_KEY not set")
 
-    async with httpx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient() as client:
         resp = await client.post(
             "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
+            headers={"Authorization": f"Bearer {api_key}"},
             json={
-                "model": "llama-3.1-8b-instant",
+                "model": "llama3-3.1-8b-instant",
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 512
-            }
+                "max_tokens": 2000
+            },
+            timeout=60
         )
 
         if resp.status_code != 200:
-            print("Groq error:", resp.text)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Groq error: {resp.text}"
+            )
 
-        resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
 
-
-# ---------- API endpoint ----------
+# ------------------ AI Endpoint ------------------
 @app.post("/query")
 async def handle_query(q: Query):
-    # Redis must be available
-    if not r:
-        raise HTTPException(status_code=503, detail="Service unavailable")
-
-    # Check payment
-    paid = r.get(f"paid:{q.user_id}")
-    if not paid:
+    if not r.get(f"paid:{q.user_id}"):
         raise HTTPException(status_code=402, detail="Payment required")
 
-    try:
-        reply = await call_groq(q.prompt)
-        return {"reply": reply}
-    except httpx.HTTPError:
-        raise HTTPException(status_code=502, detail="AI service error")
-
+    reply = await call_groq(q.prompt)
+    return {"reply": reply}
 
 # ------------------ Crypto Webhook ------------------
 @app.post("/oxapay-webhook")
