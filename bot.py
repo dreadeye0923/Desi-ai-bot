@@ -24,7 +24,7 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         resp = await client.post(
             "https://api.oxapay.com/merchants/request",
             json={
-                "merchant_api_key": 6CUJMP-DWJOFR-SUOWFB-Q8OWT1,  # yaha paste kar
+                "merchant_api_key": "6CUJMP-DWJOFR-SUOWFB-Q8OWT1",  # yaha paste kar
                 "amount": amount_inr,
                 "currency": "INR",
                 "description": "Lifetime Unlimited Llama AI Access",
