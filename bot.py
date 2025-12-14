@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import requests
 import os
+import httpx
 
 BASE_URL = os.getenv("BASE_URL")
 
@@ -15,8 +16,34 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    pay_link = f"https://rzp.io/rzp/eY8nbPV?notes[user_id]={user_id}" # Yeh baad mein update kar
-    await update.message.reply_text(f"₹499 ek baar → forever access\n{pay_link}")
+    amount_inr = 499
+    
+    # OxaPay invoice create (dynamic har user ke liye)
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://api.oxapay.com/merchants/request",
+            json={
+                "merchant_api_key": "TERA_OXAPAY_API_KEY",  # yaha paste kar
+                "amount": amount_inr,
+                "currency": "INR",
+                "description": "Lifetime Unlimited Llama AI Access",
+                "order_id": f"ai_bot_{user_id}",
+                "callback_url": "https://your-railway-url.com/webhook"  # optional baad mein
+            }
+        )
+        data = resp.json()
+        if data["result"] == 1:
+            pay_link = data["payLink"]
+        else:
+            pay_link = "https://oxapay.com"  # fallback
+    
+    await update.message.reply_text(
+        f"🔥 ₹{amount_inr} Lifetime Access\n"
+        f"USDT ya crypto se pay kar (auto INR convert)\n\n"
+        f"{pay_link}\n\n"
+        f"Payment success hone ke 2 min baad unlimited access unlock ho jaayega!"
+    )
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
