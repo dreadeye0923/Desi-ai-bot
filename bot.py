@@ -9,9 +9,9 @@ BASE_URL = os.getenv("BASE_URL")
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🔥 Desi Unlimited AI\n"
-        "Llama 70B (Groq) - super fast & smart\n"
+        "Llama insant(Groq) - super fast & smart\n"
         "₹499 lifetime - limited slots\n\n"
-        "/buy kar aur shuru!"
+        "/buy and let's get started!"
     )
 
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -24,7 +24,7 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         resp = await client.post(
             "https://api.oxapay.com/merchants/request",
             json={
-                "merchant_api_key": "TERA_OXAPAY_API_KEY",  # yaha paste kar
+                "merchant_api_key": 6CUJMP-DWJOFR-SUOWFB-Q8OWT1,  # yaha paste kar
                 "amount": amount_inr,
                 "currency": "INR",
                 "description": "Lifetime Unlimited Llama AI Access",
