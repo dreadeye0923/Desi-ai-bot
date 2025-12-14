@@ -67,7 +67,21 @@ async def handle_query(q: Query):
         raise HTTPException(status_code=502, detail="AI service error")
 
 
-# ---------- Health check ----------
+# ------------------ Crypto Webhook ------------------
+@app.post("/oxapay-webhook")
+async def oxapay_webhook(request: Request):
+    data = await request.json()
+
+    # Example payload handling
+    if data.get("status") == "completed":
+        order_id = data.get("orderId", "")
+        user_id = order_id.split("_")[-1]
+
+        r.set(f"paid:{user_id}", "true")
+
+    return {"status": "ok"}
+
+# ------------------ Health ------------------
 @app.get("/health")
 async def health():
     return {"status": "alive"}
