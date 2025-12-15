@@ -2,65 +2,48 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import requests
 import os
-import httpx
 
 BASE_URL = os.getenv("BASE_URL")
 
+# ---------------- START ----------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
     await update.message.reply_text(
         "🔥 Desi Unlimited AI\n"
-        "Llama insant(Groq) - super fast & smart\n"
-        "₹499 lifetime - limited slots\n\n"
-        "/buy and let's get started!"
-         f"Your user id: {user_id}\n\n"
+        "Llama 8B Instant (Groq) – super fast & smart\n"
+        "₹499 lifetime access\n\n"
+        f"🆔 Your user id: {user_id}\n\n"
+        "/buy to get started!"
     )
 
+# ---------------- BUY ----------------
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
 
-    resp = requests.post(
-        f"{BASE_URL}/create-payment",
-        json={"user_id": user_id},
-        timeout=30
-    )
-
-    pay_link = resp.json().get("payLink")
-
-    await update.message.reply_text(
-        f"💸 Crypto payment (anonymous)\n"
-        f"₹499 lifetime access\n\n"
-        f"{pay_link}\n\n"
-        f"Auto Unlock after Payment ✅"
-    )
-
-    
-    # OxaPay invoice create (dynamic har user ke liye)
-    
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://api.oxapay.com/merchants/request",
-            json={
-                "merchant_api_key": "6CUJMP-DWJOFR-SUOWFB-Q8OWT1",  # yaha paste kar
-                "amount": amount_inr,
-                "currency": "INR",
-                "description": "Lifetime Unlimited Llama AI Access",
-                "order_id": f"ai_bot_{user_id}",
-                "callback_url": "https://your-railway-url.com/webhook"  # optional baad mein
-            }
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/create-payment",
+            json={"user_id": user_id},
+            timeout=30
         )
-        data = resp.json()
-        if data["result"] == 1:
-            pay_link = data["payLink"]
-        else:
-            pay_link = "https://oxapay.com"  # fallback
-    
-    await update.message.reply_text(
-        f"🔥 ₹{amount_inr} Lifetime Access\n"
-        f"USDT ya crypto se pay kar (auto INR convert)\n\n"
-        f"{pay_link}\n\n"
-        f"Payment success hone ke 2 min baad unlimited access unlock ho jaayega!"
-    )
 
+        pay_link = resp.json().get("payLink")
+        if not pay_link:
+            await update.message.reply_text("❌ Payment link generate nahi ho raha")
+            return
+
+        await update.message.reply_text(
+            "💸 Crypto payment (anonymous)\n"
+            "₹499 lifetime access\n\n"
+            f"{pay_link}\n\n"
+            "Payment ke baad access auto-unlock ho jaayega ✅"
+        )
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+# ---------------- CHAT ----------------
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     prompt = update.message.text
@@ -77,17 +60,19 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if resp.status_code != 200:
-            await update.message.reply_text(f"Error {resp.status_code}: {resp.text}")
+            await update.message.reply_text("Server error, thoda baad try karo")
             return
 
         await update.message.reply_text(resp.json()["reply"])
 
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error: {str(e)}")
+    except Exception:
+        await update.message.reply_text("Busy hai, 10 sec baad try")
 
-
+# ---------------- APP ----------------
 application = Application.builder().token(os.getenv("TG_TOKEN")).build()
+
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("buy", buy))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+
 application.run_polling()
