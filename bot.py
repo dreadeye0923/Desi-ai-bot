@@ -16,7 +16,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    amount_inr = 499
+
+    resp = requests.post(
+        f"{BASE_URL}/create-payment",
+        json={"user_id": user_id},
+        timeout=30
+    )
+
+    pay_link = resp.json().get("payLink")
+
+    await update.message.reply_text(
+        f"💸 Crypto payment (anonymous)\n"
+        f"₹499 lifetime access\n\n"
+        f"{pay_link}\n\n"
+        f"Auto Unlock after Payment ✅"
+    )
+
     
     # OxaPay invoice create (dynamic har user ke liye)
     
