@@ -12,6 +12,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Llama insant(Groq) - super fast & smart\n"
         "₹499 lifetime - limited slots\n\n"
         "/buy and let's get started!"
+         f"Your user id: {user_id}\n\n"
     )
 
 async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
