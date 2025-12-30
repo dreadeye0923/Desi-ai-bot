@@ -11,7 +11,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "🔥 Desi Unlimited AI\n"
-        "Llama 8B Instant (Groq) – super fast & smart\n"
+        "Llama 3.3 80B versatile (Groq) – super fast & smart\n"
         "₹499 lifetime access\n\n"
         f"🆔 Your user id: {user_id}\n\n"
         "/buy to get started!"
