@@ -30,14 +30,14 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         pay_link = resp.json().get("payLink")
         if not pay_link:
-            await update.message.reply_text("❌ Payment link generate nahi ho raha")
+            await update.message.reply_text("❌ Payment Link not generating")
             return
 
         await update.message.reply_text(
-            "💸 Crypto payment (anonymous)\n"
+            "💸 Crypto payment (anonymous) USDT TRC20\n"
             "₹499 lifetime access\n\n"
             f"{pay_link}\n\n"
-            "Payment ke baad access auto-unlock ho jaayega ✅"
+            "Auto Unlock after Payment ✅"
         )
 
     except Exception as e:
@@ -56,17 +56,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if resp.status_code == 402:
-            await update.message.reply_text("Pay kar pehle → /buy")
+            await update.message.reply_text("Buy first → /buy")
             return
 
         if resp.status_code != 200:
-            await update.message.reply_text("Server error, thoda baad try karo")
+            await update.message.reply_text("Server error, try after some time")
             return
 
         await update.message.reply_text(resp.json()["reply"])
 
     except Exception:
-        await update.message.reply_text("Busy hai, 10 sec baad try")
+        await update.message.reply_text("Busy, try after 10 sec")
 
 # ---------------- APP ----------------
 application = Application.builder().token(os.getenv("TG_TOKEN")).build()
